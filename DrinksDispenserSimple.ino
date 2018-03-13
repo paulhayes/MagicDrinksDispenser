@@ -18,19 +18,21 @@
 #define isLow(P)((*(pinOfPin(P))& pinMask(P))==0)
 #define digitalState(P)((uint8_t)isHigh(P))
 
+#define DEBUG true
+
 const byte DISPENSE_BTN_PIN_1 = 8;
 const byte DISPENSE_BTN_PIN_2 = 11;
 const byte MOTOR_PIN = 9;
 const byte LIGHT_PIN = 10;
 
 const int mFreq = 58;
-unsigned int lFreq = 30;
+unsigned int lFreq = 44;
 
 unsigned long mW = 1000000 / mFreq;
 unsigned long lW = 1000000 / lFreq;
 
 unsigned long mD = round(0.4*mW);
-unsigned long lD = round(0.1*lW);
+unsigned long lD = 2000;
 
 const byte ENCODER_BTN_PIN_1 = 4;
 const byte ENCODER_BTN_PIN_2 = 6;
@@ -42,11 +44,13 @@ const byte ENCODER_PIN_VCC = 5;
 long lastEncoderPos;
 volatile long encoderPos = 0;
 
+bool toggleOn;
+int motorSpeed = 128;
+int lastMotorSpeed = 0;
+
 void setup() {
-  TCCR1B = (TCCR1B & 0b11111000) | 0x5;
-  //Serial.begin(9600);
-  //Serial.println(mD);
-  //Serial.println(lD);
+  // Set PWM to 30Hz
+  //TCCR1B = (TCCR1B & 0b11111000) | 0x5;
 
   pinMode(LIGHT_PIN,OUTPUT);  
   pinMode(LIGHT_PIN,OUTPUT);  
@@ -63,6 +67,10 @@ void setup() {
   digitalWrite(ENCODER_PIN_VCC, LOW);
   enableInterrupt(ENCODER_PIN_1, EncAChange, CHANGE);
   enableInterrupt(ENCODER_PIN_2, EncBChange, CHANGE);
+
+  #if DEBUG
+  Serial.begin(9600); 
+  #endif
 }
 
 void loop() {
@@ -72,12 +80,12 @@ void loop() {
   bool btn2 = isLow(ENCODER_BTN_PIN_1); 
   bool mOn = ((t%mW)<mD);
   bool lOn = (t%lW)<lD;
-  //mOn &= btnDown;
   int mS = 0;
-  if(btnDown){
-    mS=50;
-  }else if(btn2){
-    mS=200;
+  if( btnDown || toggleOn){
+    mS=240;
+  }
+  if(btn2){
+    toggleOn = !toggleOn;
   }
 
   if( encoderPos != lastEncoderPos ){
@@ -87,17 +95,22 @@ void loop() {
     //lW = 1000000 / lFreq;
     //lD = round(0.1*lW);
     lW += 10 * ( encoderPosTmp - lastEncoderPos );
-    lD = 1000;
+    
     lastEncoderPos = encoderPosTmp;
+    #if DEBUG
+      Serial.print("wavelength ");
+      Serial.println(lW);
+    #endif
     //Serial.println(lFreq);
     //delay(500);
-    //Serial.print("wavelength ");
-    //Serial.println(lW);
   }
   
   // Here's an idea. How about only settings this if it's changed
-  analogWrite( MOTOR_PIN, mS);
-  //digitalWrite( MOTOR_PIN, mOn);
+  if( lastMotorSpeed != mS ){
+    analogWrite( MOTOR_PIN, mS);
+    lastMotorSpeed = motorSpeed;
+  } 
+  
   digitalWrite( LIGHT_PIN, lOn);
 
 
