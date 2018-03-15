@@ -18,10 +18,10 @@
 #define isLow(P)((*(pinOfPin(P))& pinMask(P))==0)
 #define digitalState(P)((uint8_t)isHigh(P))
 
-#define DEBUG true
+#define DEBUG false
 
-const byte DISPENSE_BTN_PIN_1 = 8;
-const byte DISPENSE_BTN_PIN_2 = 11;
+const byte DISPENSE_BTN_PIN_1 = A1;
+const byte DISPENSE_BTN_PIN_2 = A0;
 const byte MOTOR_PIN = 9;
 const byte LIGHT_PIN = 10;
 
@@ -44,8 +44,8 @@ const byte ENCODER_PIN_VCC = 5;
 long lastEncoderPos;
 volatile long encoderPos = 0;
 
-bool toggleOn;
-int motorSpeed = 128;
+bool toggleOn = false;
+int motorSpeed = 240;
 int lastMotorSpeed = 0;
 
 void setup() {
@@ -68,8 +68,10 @@ void setup() {
   enableInterrupt(ENCODER_PIN_1, EncAChange, CHANGE);
   enableInterrupt(ENCODER_PIN_2, EncBChange, CHANGE);
 
+  analogWrite( MOTOR_PIN, 0);
+
   #if DEBUG
-  Serial.begin(9600); 
+  Serial.begin(9600);
   #endif
 }
 
@@ -81,10 +83,13 @@ void loop() {
   bool mOn = ((t%mW)<mD);
   bool lOn = (t%lW)<lD;
   int mS = 0;
+  
   if( btnDown || toggleOn){
-    mS=240;
+    //mS=240;
+    mS = motorSpeed;
   }
   if(btn2){
+    delay(10);
     toggleOn = !toggleOn;
   }
 
@@ -107,8 +112,9 @@ void loop() {
   
   // Here's an idea. How about only settings this if it's changed
   if( lastMotorSpeed != mS ){
+    
     analogWrite( MOTOR_PIN, mS);
-    lastMotorSpeed = motorSpeed;
+    lastMotorSpeed = mS;
   } 
   
   digitalWrite( LIGHT_PIN, lOn);
