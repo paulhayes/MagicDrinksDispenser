@@ -48,6 +48,8 @@ bool toggleOn = false;
 int motorSpeed = 240;
 int lastMotorSpeed = 0;
 
+unsigned long lastPressed;
+
 void setup() {
   // Set PWM to 30Hz
   //TCCR1B = (TCCR1B & 0b11111000) | 0x5;
@@ -84,13 +86,13 @@ void loop() {
   bool lOn = (t%lW)<lD;
   int mS = 0;
   
-  if( btnDown || toggleOn){
+  if( btnDown && toggleOn){
     //mS=240;
     mS = motorSpeed;
   }
-  if(btn2){
-    delay(10);
+  if(btn2 && abs(t-lastPressed)>500000 ){
     toggleOn = !toggleOn;
+    lastPressed = t;
   }
 
   if( encoderPos != lastEncoderPos ){
